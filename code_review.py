@@ -2497,6 +2497,10 @@ class LocalizadorHibridoResolucion:
             return True
 
         # ─── CAPA 0: LOCALIZADORES SEMÁNTICOS DIRECTOS (máxima confianza) ───
+        mejor_match_0 = None
+        mejor_score_0 = 0
+        mejor_razon_0 = ""
+        
         for elem in elementos_ui:
             if not elem_valido(elem):
                 continue
@@ -2506,33 +2510,49 @@ class LocalizadorHibridoResolucion:
             ehint = cls._norm(elem.get("hint") or "")
             edesc = cls._norm(elem.get("content_desc") or "")
 
-            match = False
+            score = 0
             razon = ""
+            
             if texto_exacto and etxt and texto_exacto == etxt:
-                match = True; razon = f"texto_exacto='{texto_exacto}'"
+                score += 1000; razon = f"texto_exacto='{texto_exacto}'"
             elif texto_exacto and etxt and len(texto_exacto) >= 3 and (texto_exacto in etxt or (texto_exacto.startswith("pay") and etxt.startswith("pay ("))):
-                match = True; razon = f"texto contiene '{texto_exacto}'"
-            elif content_desc_l and edesc and content_desc_l in edesc:
-                match = True; razon = f"content_desc='{content_desc_l}'"
-            elif res_id_frag and eid and res_id_frag in eid:
-                match = True; razon = f"resource_id contiene '{res_id_frag}'"
-            elif hint_l and ehint and hint_l in ehint:
-                match = True; razon = f"hint='{hint_l}'"
+                score += 500; razon = f"texto contiene '{texto_exacto}'"
             elif texto_exacto and ehint and len(texto_exacto) >= 3 and texto_exacto in ehint:
-                match = True; razon = f"hint contiene '{texto_exacto}'"
+                score += 500; razon = f"hint contiene '{texto_exacto}'"
+                
+            if content_desc_l and edesc and content_desc_l in edesc:
+                score += 400
+                if not razon: razon = f"content_desc='{content_desc_l}'"
+                
+            if hint_l and ehint and hint_l in ehint:
+                score += 400
+                if not razon: razon = f"hint='{hint_l}'"
+                
+            if res_id_frag and eid and res_id_frag in eid:
+                score += 100
+                if not razon: razon = f"resource_id contiene '{res_id_frag}'"
 
-            if match:
-                nombre_resuelto = elem.get("text") or elem.get("hint") or elem.get("resource_id") or elem_nombre
-                return {
-                    "tipo_gesto": tipo_gesto,
-                    "x": cx, "y": cy,
-                    "resource_id": elem.get("resource_id"),
-                    "metodo": "COGNITIVO_DIRECTO",
-                    "elemento_resuelto": nombre_resuelto,
-                    "texto_a_escribir": texto_a_escribir,
-                    "confianza": "MAXIMA",
-                    "explicacion": f"[Cognitivo {ancho_pantalla}x{alto_pantalla}] {razon} → '{nombre_resuelto}' en ({cx},{cy})"
-                }
+            # Castigar falsos positivos: si tenemos texto exacto pero este elemento tiene otro texto totalmente distinto, bajamos el score
+            if texto_exacto and etxt and texto_exacto not in etxt and etxt not in texto_exacto:
+                score -= 200
+
+            if score > 0 and score > mejor_score_0:
+                mejor_score_0 = score
+                mejor_razon_0 = razon
+                mejor_match_0 = elem
+
+        if mejor_match_0 and mejor_score_0 > 0:
+            nombre_resuelto = mejor_match_0.get("text") or mejor_match_0.get("hint") or mejor_match_0.get("resource_id") or elem_nombre
+            return {
+                "tipo_gesto": tipo_gesto,
+                "x": mejor_match_0["center"][0], "y": mejor_match_0["center"][1],
+                "resource_id": mejor_match_0.get("resource_id"),
+                "metodo": "COGNITIVO_DIRECTO",
+                "elemento_resuelto": nombre_resuelto,
+                "texto_a_escribir": texto_a_escribir,
+                "confianza": "MAXIMA",
+                "explicacion": f"[Cognitivo {ancho_pantalla}x{alto_pantalla}] {mejor_razon_0} (score {mejor_score_0}) → '{nombre_resuelto}'"
+            }
 
         # ─── CAPA 1: TÉRMINOS CLAVE DIFUSOS EN XML (solo del elemento objetivo, no de descripciones genéricas) ───
         terminos = set(cls.extraer_terminos_clave(elem_nombre))
