@@ -892,216 +892,107 @@ class ProcedimientosAprendidos:
         return len(cls._datos)
 
 
-def mostrar_modal_instruccion(pantalla_tipo: str, paso_objetivo: str) -> Optional[Dict[str, Any]]:
-    """
-    Modal de tkinter que aparece SOLO cuando el bot agoto todos sus intentos y
-    no encuentra instruccion guardada. Pide al usuario que explique el procedimiento
-    y lo guarda permanentemente para no volver a preguntar.
-    """
+def mostrar_modal_instruccion(pantalla_tipo: str, paso_objetivo: str):
+    import subprocess
+    import sys
+    import tempfile
+    import os
+    import json
+
+    script = """
+import tkinter as tk
+import sys, json
+
+def main():
+    root = tk.Tk()
+    root.title("Intervencion Requerida")
+    root.configure(bg="#0f172a")
+    root.geometry("600x450")
+    root.attributes("-topmost", True)
+    mf = tk.Frame(root, bg="#0f172a", padx=20, pady=20)
+    mf.pack(fill=tk.BOTH, expand=True)
+    tk.Label(mf, text="Intervencion requerida", font=("Segoe UI", 14, "bold"), bg="#0f172a", fg="#ef4444").pack(anchor="w")
+    tk.Label(mf, text=f"Paso actual:\n{sys.argv[1]}", font=("Segoe UI", 9, "bold"), bg="#1e293b", fg="#cbd5e1", justify="left", wraplength=550).pack(fill=tk.X, pady=5)
+    tw = tk.Text(mf, height=5, bg="#1e293b", fg="white", font=("Consolas", 10))
+    tw.pack(fill=tk.X, pady=(0, 10))
+    def confirmar():
+        ans = tw.get("1.0", tk.END).strip()
+        if ans:
+            print(json.dumps({"descripcion": ans}))
+            root.destroy()
+    tk.Button(mf, text="Reanudar", command=confirmar).pack(side=tk.RIGHT)
+    root.mainloop()
+
+if __name__ == '__main__':
+    main()
+"""
+    fd, path = tempfile.mkstemp(suffix=".py")
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        f.write(script)
     try:
-        import tkinter as tk
-        from tkinter import messagebox
-
-        resultado: Dict[str, Any] = {}
-
-        root = tk.Tk()
-        root.title("Bot de QA - Asistencia Requerida")
-        root.configure(bg="#0f172a")
-        root.geometry("760x600")
-        root.attributes("-topmost", True)
-        root.resizable(True, True)
-        root.update_idletasks()
-        sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
-        root.geometry(f"760x600+{(sw - 760) // 2}+{(sh - 600) // 2}")
-
-        mf = tk.Frame(root, bg="#0f172a", padx=22, pady=18)
-        mf.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(mf, text="Bot de Validacion - Necesito tu Ayuda",
-                 font=("Segoe UI", 13, "bold"), bg="#0f172a", fg="#f8fafc").pack(anchor="w", pady=(0, 4))
-        tk.Frame(mf, bg="#334155", height=1).pack(fill=tk.X, pady=(0, 12))
-
-        tk.Label(mf, text="El bot no pudo completar el siguiente paso tras multiples intentos:",
-                 font=("Segoe UI", 10, "bold"), bg="#0f172a", fg="#fbbf24").pack(anchor="w")
-
-        ctx = tk.Frame(mf, bg="#1e293b", pady=10, padx=12)
-        ctx.pack(fill=tk.X, pady=(6, 14))
-        tk.Label(ctx, text=f"Pantalla detectada: {pantalla_tipo}\nPaso: {paso_objetivo[:220]}",
-                 font=("Segoe UI", 9), bg="#1e293b", fg="#cbd5e1",
-                 wraplength=700, justify="left").pack(anchor="w")
-
-        tk.Label(mf,
-                 text="Explicame que debo hacer en este caso.\n"
-                      "El bot lo recordara para siempre y no volvera a preguntarte:",
-                 font=("Segoe UI", 10, "bold"), bg="#0f172a", fg="#38bdf8",
-                 justify="left").pack(anchor="w", pady=(0, 6))
-
-        PLACEHOLDER = (
-            "Describe el procedimiento paso a paso...\n\n"
-            "Ej: Para pagar con tarjeta, toca 'Credit Card', espera 5 segundos "
-            "para que el pinpad se active, inserta la tarjeta de prueba y confirma."
-        )
-        tw = tk.Text(mf, height=8, width=80, bg="#1e293b", fg="#64748b",
-                     insertbackground="#f8fafc", font=("Consolas", 9),
-                     wrap=tk.WORD, relief="flat", padx=10, pady=8)
-        tw.insert("1.0", PLACEHOLDER)
-        tw.pack(fill=tk.X, pady=(0, 6))
-
-        def _focus_in(_):
-            if tw.get("1.0", tk.END).strip() == PLACEHOLDER.strip():
-                tw.delete("1.0", tk.END)
-                tw.configure(fg="#f8fafc")
-
-        def _focus_out(_):
-            if not tw.get("1.0", tk.END).strip():
-                tw.insert("1.0", PLACEHOLDER)
-                tw.configure(fg="#64748b")
-
-        tw.bind("<FocusIn>", _focus_in)
-        tw.bind("<FocusOut>", _focus_out)
-
-        guardar_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(mf,
-                       text="Guardar esta instruccion permanentemente para situaciones similares",
-                       variable=guardar_var, bg="#0f172a", fg="#94a3b8",
-                       selectcolor="#1e293b", activebackground="#0f172a",
-                       font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 14))
-
-        bf = tk.Frame(mf, bg="#0f172a")
-        bf.pack(fill=tk.X)
-
-        def _confirmar():
-            texto = tw.get("1.0", tk.END).strip()
-            if not texto or texto == PLACEHOLDER.strip():
-                messagebox.showwarning("Campo vacio",
-                    "Por favor describe el procedimiento para que el bot pueda continuar.",
-                    parent=root)
-                return
-            resultado["instruccion"] = texto
-            resultado["guardar"] = guardar_var.get()
-            root.destroy()
-
-        def _omitir():
-            resultado["omitido"] = True
-            root.destroy()
-
-        tk.Button(bf, text="Confirmar y Continuar", command=_confirmar,
-                  bg="#10b981", fg="white", font=("Segoe UI", 10, "bold"),
-                  relief="flat", padx=18, pady=8, cursor="hand2").pack(side=tk.LEFT, padx=(0, 10))
-        tk.Button(bf, text="Omitir este Paso", command=_omitir,
-                  bg="#475569", fg="white", font=("Segoe UI", 9),
-                  relief="flat", padx=14, pady=8, cursor="hand2").pack(side=tk.LEFT)
-
-        root.protocol("WM_DELETE_WINDOW", _omitir)
-        root.mainloop()
-
-        if resultado.get("omitido"):
-            return None
-
-        instruccion_final = {
-            "descripcion": resultado.get("instruccion", ""),
-            "pantalla": pantalla_tipo,
-            "paso": paso_objetivo
-        }
-        if resultado.get("guardar", True) and instruccion_final["descripcion"]:
-            ProcedimientosAprendidos.guardar(pantalla_tipo, paso_objetivo, instruccion_final)
-        return instruccion_final
-
-    except Exception:
-        # Fallback a consola si tkinter no esta disponible
-        print(f"\n{'='*65}")
-        print(f"BOT - ASISTENCIA REQUERIDA: Pantalla '{pantalla_tipo}' | Paso: '{paso_objetivo[:120]}'")
-        print(f"{'='*65}")
-        try:
-            instruccion_txt = leer_input_con_escape("Describe que debo hacer en este caso: ").strip()
-            if instruccion_txt:
-                inst = {"descripcion": instruccion_txt, "pantalla": pantalla_tipo, "paso": paso_objetivo}
-                ProcedimientosAprendidos.guardar(pantalla_tipo, paso_objetivo, inst)
-                return inst
-        except Exception:
-            pass
+        res = subprocess.run([sys.executable, path, paso_objetivo], capture_output=True, text=True, encoding="utf-8")
+        out = res.stdout.strip()
+        if out:
+            inst = json.loads(out)
+            inst["pantalla"] = pantalla_tipo
+            inst["paso"] = paso_objetivo
+            from onthefly_knowledge_engine import ProcedimientosAprendidos
+            ProcedimientosAprendidos.guardar(pantalla_tipo, paso_objetivo, inst)
+            return inst
         return None
+    except Exception:
+        return None
+    finally:
+        try: os.remove(path)
+        except: pass
 
-def pedir_verificacion_fisica_humana(pregunta: str) -> Optional[str]:
-    """
-    Despliega un modal pidiéndole al usuario que verifique algo físicamente
-    o en otra aplicación (ej: recibo impreso, email).
-    Devuelve la respuesta del usuario o None si omite.
-    """
+def pedir_verificacion_fisica_humana(pregunta: str):
+    import subprocess
+    import sys
+    import tempfile
+    import os
+
+    script = """
+import tkinter as tk
+import sys
+
+def main():
+    root = tk.Tk()
+    root.title("Verificacion Fisica")
+    root.configure(bg="#0f172a")
+    root.geometry("600x400")
+    root.attributes("-topmost", True)
+    mf = tk.Frame(root, bg="#0f172a", padx=22, pady=18)
+    mf.pack(fill=tk.BOTH, expand=True)
+    tk.Label(mf, text="Verificacion Fisica o Externa", font=("Segoe UI", 13, "bold"), bg="#0f172a", fg="#f8fafc").pack(anchor="w", pady=(0, 4))
+    ctx = tk.Frame(mf, bg="#1e293b", pady=10, padx=12)
+    ctx.pack(fill=tk.X, pady=(6, 14))
+    tk.Label(ctx, text=sys.argv[1], font=("Segoe UI", 10, "bold"), bg="#1e293b", fg="#cbd5e1", wraplength=500, justify="left").pack(anchor="w")
+    tw = tk.Text(mf, height=4, width=60, bg="#1e293b", fg="#f8fafc", font=("Consolas", 10))
+    tw.pack(fill=tk.X, pady=(0, 12))
+    def confirmar():
+        ans = tw.get("1.0", tk.END).strip()
+        if ans:
+            print(ans)
+            root.destroy()
+    tk.Button(mf, text="Confirmar", command=confirmar).pack(side=tk.RIGHT)
+    root.mainloop()
+
+if __name__ == '__main__':
+    main()
+"""
+    fd, path = tempfile.mkstemp(suffix=".py")
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        f.write(script)
     try:
-        import tkinter as tk
-        from tkinter import messagebox
-
-        respuesta_final: dict = {"texto": None}
-
-        root = tk.Tk()
-        root.title("Bot de QA - Verificación Manual Requerida")
-        root.configure(bg="#0f172a")
-        root.geometry("600x400")
-        root.attributes("-topmost", True)
-        root.resizable(True, True)
-        root.update_idletasks()
-        sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
-        root.geometry(f"600x400+{(sw - 600) // 2}+{(sh - 400) // 2}")
-
-        mf = tk.Frame(root, bg="#0f172a", padx=22, pady=18)
-        mf.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(mf, text="🔍 Verificación Física o Externa",
-                 font=("Segoe UI", 13, "bold"), bg="#0f172a", fg="#f8fafc").pack(anchor="w", pady=(0, 4))
-        tk.Frame(mf, bg="#334155", height=1).pack(fill=tk.X, pady=(0, 12))
-
-        tk.Label(mf, text="El bot no puede verificar esto automáticamente.",
-                 font=("Segoe UI", 10), bg="#0f172a", fg="#fbbf24").pack(anchor="w")
-
-        ctx = tk.Frame(mf, bg="#1e293b", pady=10, padx=12)
-        ctx.pack(fill=tk.X, pady=(6, 14))
-        tk.Label(ctx, text=pregunta,
-                 font=("Segoe UI", 10, "bold"), bg="#1e293b", fg="#cbd5e1",
-                 wraplength=500, justify="left").pack(anchor="w")
-
-        tk.Label(mf, text="Por favor, revisa y describe si el bug persiste o fue corregido:",
-                 font=("Segoe UI", 9), bg="#0f172a", fg="#38bdf8").pack(anchor="w", pady=(0, 6))
-
-        tw = tk.Text(mf, height=4, width=60, bg="#1e293b", fg="#f8fafc",
-                     insertbackground="#f8fafc", font=("Consolas", 10),
-                     wrap=tk.WORD, relief="flat", padx=10, pady=8)
-        tw.pack(fill=tk.X, pady=(0, 12))
-        tw.focus_set()
-
-        bf = tk.Frame(mf, bg="#0f172a")
-        bf.pack(fill=tk.X)
-
-        def _confirmar():
-            texto = tw.get("1.0", tk.END).strip()
-            if not texto:
-                messagebox.showwarning("Campo vacío", "Ingresa tu respuesta para continuar.", parent=root)
-                return
-            respuesta_final["texto"] = texto
-            root.destroy()
-
-        def _omitir():
-            root.destroy()
-
-        tk.Button(bf, text="Confirmar Observación", command=_confirmar,
-                  bg="#10b981", fg="white", font=("Segoe UI", 10, "bold"),
-                  relief="flat", padx=18, pady=8, cursor="hand2").pack(side=tk.LEFT, padx=(0, 10))
-        tk.Button(bf, text="Omitir", command=_omitir,
-                  bg="#ef4444", fg="white", font=("Segoe UI", 9),
-                  relief="flat", padx=14, pady=8, cursor="hand2").pack(side=tk.LEFT)
-
-        root.protocol("WM_DELETE_WINDOW", _omitir)
-        root.mainloop()
-
-        return respuesta_final.get("texto")
-    except Exception as e:
-        print(f"Error mostrando modal de verificación: {e}")
-        try:
-            print(f"\n🔍 VERIFICACIÓN FÍSICA/EXTERNA: {pregunta}")
-            res = leer_input_con_escape("Escribe tu observación: ").strip()
-            return res if res else None
-        except:
-            return None
+        res = subprocess.run([sys.executable, path, pregunta], capture_output=True, text=True, encoding="utf-8")
+        out = res.stdout.strip()
+        return out if out else None
+    except Exception:
+        return None
+    finally:
+        try: os.remove(path)
+        except: pass
 
 
 # ==========================================
@@ -4349,6 +4240,43 @@ def ejecutar_verificacion_en_dispositivo(adb: ADBController, reporte: Dict[str, 
                             break
                         continue
 
+            
+            # --- SCROLL DINAMICO RECURSIVO (OBLIGATORIO) ---
+            # Antes de declarar que no existe el elemento y pasarle el control a la IA o fallar,
+            # DEBEMOS hacer scroll buscando el elemento si tenemos accion_video.
+            if not gesto_video_ejecutado and accion_video and intento == 1:
+                print("   [SCROLL DINAMICO] No se encontro el elemento a primera vista. Iniciando busqueda con scroll...")
+                encontrado_scroll = False
+                for direccion in ["DOWN", "DOWN", "UP", "UP"]:
+                    if direccion == "DOWN":
+                        adb.swipe(ancho_d//2, alto_d//2 + 300, ancho_d//2, alto_d//2 - 300, 500)
+                    else:
+                        adb.swipe(ancho_d//2, alto_d//2 - 300, ancho_d//2, alto_d//2 + 300, 500)
+                    dormir_con_escape(1.5)
+                    
+                    _, elems_scroll = adb.capturar_ui_xml()
+                    res_scr = LocalizadorHibridoResolucion.resolver_accion_adaptable(
+                        accion_video=accion_video,
+                        elementos_ui=elems_scroll,
+                        ancho_pantalla=ancho_d,
+                        alto_pantalla=alto_d
+                    )
+                    if res_scr.get("confianza") == "MAXIMA":
+                        print(f"   [SCROLL DINAMICO] Elemento encontrado tras scroll. Ejecutando...")
+                        x_s, y_s = res_scr.get("x", 0), res_scr.get("y", 0)
+                        if res_scr.get("tipo_gesto", "TAP").upper() == "TAP":
+                            adb.tap(x_s, y_s, res_id=res_scr.get("resource_id"))
+                        elif res_scr.get("tipo_gesto").upper() == "TYPE":
+                            txt_s = res_scr.get("texto_a_escribir")
+                            if txt_s: adb.type_text(txt_s)
+                        gesto_video_ejecutado = True
+                        paso_resuelto = True
+                        encontrado_scroll = True
+                        break
+                
+                if encontrado_scroll:
+                    break # Salir de los intentos, el paso esta resuelto
+
             # --- DECISION DE LA IA (cuando el elemento del video requiere navegación previa o no hay video) ---
             logs_recientes = adb.leer_logs_recientes(30)
 
@@ -4586,7 +4514,7 @@ def ejecutar_verificacion_en_dispositivo(adb: ADBController, reporte: Dict[str, 
                         elif acc_m == "KEYEVENT":
                             adb.keyevent(dec_modal.get("keycode", 4))
                             dormir_con_escape(1.5)
-                        # No marcamos como resuelto automaticamente — el paso se registra con la instruccion
+                        paso_resuelto = True # Asumimos que la intervencion manual resuelve el paso
                     except Exception as e_modal:
                         print(f"   Aviso al aplicar instruccion del modal: {e_modal}")
 
