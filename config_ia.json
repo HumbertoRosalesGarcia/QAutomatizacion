@@ -1,0 +1,6 @@
+{
+  "proveedor_activo": "gemini",
+  "groq_api_key": "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",
+  "openrouter_api_key": "",
+  "modelo_groq": "openai/gpt-oss-120b"
+}

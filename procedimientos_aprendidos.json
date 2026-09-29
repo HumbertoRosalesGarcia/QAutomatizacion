@@ -1,0 +1,26 @@
+{
+  "passcode_ingresar_módulo_quick_sale_menú": {
+    "descripcion": "Si le está pidiendo hacer clock in debe ingresar a la parte inferior izquierda (Dibujo del Reloj) y seguir el procedimiento para hacer \"Clock in\" con el cliente 2222",
+    "pantalla": "PASSCODE",
+    "paso": "Ingresar al módulo de \"Quick Sale\" desde el menú principal.",
+    "timestamp": "2026-09-21 13:08:07",
+    "pantalla_origen": "PASSCODE",
+    "paso_origen": "Ingresar al módulo de \"Quick Sale\" desde el menú principal."
+  },
+  "punto_de_venta_vincular_orden_cliente_membresía_activa": {
+    "descripcion": "En el video despues de ingresar a quick sale se ve claramente que debes entrar en la categoria brunch, debes hacer lo mismo que se hace en el video adjunto.",
+    "pantalla": "PUNTO_DE_VENTA",
+    "paso": "Vincular a la orden un cliente con membresía activa y correo predeterminado (ej. Humberto Gold).",
+    "timestamp": "2026-09-29 09:15:16",
+    "pantalla_origen": "PUNTO_DE_VENTA",
+    "paso_origen": "Vincular a la orden un cliente con membresía activa y correo predeterminado (ej. Humberto Gold)."
+  },
+  "desconocido_ingresar_correo_numero_alternativo_campo_solicitud": {
+    "descripcion": "En el video se ve claramente que hay que deslizarse hacia abajo en la ventana de pagos, y no entrar a \"Customer Benefits\" como hiciste. Necesitoq ue repliques incluso los scrols hacia arriba y hacia abajo, derecha o izquierda tal como se aprecian tambien e los videos.",
+    "pantalla": "DESCONOCIDO",
+    "paso": "Ingresar un correo o numero alternativo en el campo de solicitud de pago (Elemento: Phone Number)",
+    "timestamp": "2026-09-29 10:36:34",
+    "pantalla_origen": "DESCONOCIDO",
+    "paso_origen": "Ingresar un correo o numero alternativo en el campo de solicitud de pago (Elemento: Phone Number)"
+  }
+}

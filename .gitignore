@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Temporary test dumps, captures, and evidence
+review_temp/
+Reportes_Verificacion/
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.xml
+*.log
+
+# Sensitive runtime tokens and local status
+token.json
+gemini_keys_status.json
+gemini_cuotas.json
+Nuevo documento de texto.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
