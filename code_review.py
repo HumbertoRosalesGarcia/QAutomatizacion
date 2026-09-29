@@ -2426,24 +2426,19 @@ Responde ÚNICAMENTE en formato JSON con la siguiente estructura:
             elementos_relevantes = elementos_ui
 
         elementos_filtrados = []
-        for e in elementos_relevantes[:100]:
+        for e in elementos_relevantes[:40]:
             elementos_filtrados.append({
-                "texto": e.get("text", ""),
-                "id": e.get("resource_id", "").split("/")[-1] if e.get("resource_id") else "",
-                "clase": e.get("class", "").split(".")[-1],
-                "centro": e.get("center", (0, 0)),
-                "clickable": e.get("clickable", False)
+                't': e.get('text', '')[:30],
+                'id': e.get('resource_id', '').split('/')[-1][:30] if e.get('resource_id') else '',
+                'c': e.get('center', (0,0))
             })
 
         bloque_video = ""
         if analisis_video:
-            bloque_video = f"""
-EVIDENCIA PREVIA EXTRAÍDA DEL VIDEO ORIGINAL GRABADO:
-- Resumen del flujo en video: {analisis_video.get('resumen_evidencia', '')}
-- Falla observada en el video: {analisis_video.get('comportamiento_bug_observado', '')}
-- Acciones cronológicas en el video:
-{json.dumps(analisis_video.get('acciones_cronologicas', []), ensure_ascii=False, indent=2)}
-"""
+            paso_dict = {}
+            if "acciones_cronologicas" in analisis_video and 0 < paso_idx <= len(analisis_video["acciones_cronologicas"]):
+                paso_dict = analisis_video["acciones_cronologicas"][paso_idx - 1]
+            bloque_video = f"""\nEVIDENCIA (Paso {paso_idx}): {paso_dict}"""
 
         ancho, alto = self.adb.obtener_resolucion()
         
@@ -3767,7 +3762,7 @@ def ejecutar_verificacion_en_dispositivo(adb: ADBController, reporte: Dict[str, 
                     break # Salir de los intentos, el paso esta resuelto
 
             # --- DECISION DE LA IA (cuando el elemento del video requiere navegación previa o no hay video) ---
-            logs_recientes = adb.leer_logs_recientes(30)
+            logs_recientes = adb.leer_logs_recientes(5)
 
             paso_consulta = paso
             if coords_tocadas_paso:
