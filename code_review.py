@@ -4358,9 +4358,14 @@ Responde OBLIGATORIAMENTE en formato JSON con la siguiente estructura:
     print("═" * 65 + "\n")
 
     try:
-        webbrowser.open(url_html)
-    except Exception:
-        pass
+        import os
+        import sys
+        if sys.platform == "win32":
+            os.startfile(ruta_html)
+        else:
+            webbrowser.open(url_html)
+    except Exception as e:
+        print(f"  [AVISO] No se pudo abrir el reporte automaticamente: {e}")
 
     return veredicto
 
