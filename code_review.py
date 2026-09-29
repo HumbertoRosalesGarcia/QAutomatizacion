@@ -1322,7 +1322,7 @@ Tipos de gesto validos: TAP, SWIPE, TYPE, LONG_PRESS, KEYEVENT, SCROLL_DOWN, SCR
 
         # 3. ANÁLISIS MULTIMODAL CON GEMINI (FOTOGRAMAS + AUDIO TRANSCRITO + ROTACIÓN DE CLAVES Y MODELOS)
         if partes_frames_gemini:
-            modelos_vision = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.8-flash"]
+            modelos_vision = ["gemini-3.8-flash", "gemini-3.6-flash"]
             contenidos_multimodales = list(partes_frames_gemini) + [prompt]
             for mod_v in modelos_vision:
                 if datos:
@@ -2148,7 +2148,7 @@ class LocalizadorHibridoResolucion:
 class BugVerificationEngine:
     """Motor de orquestación de verificación guiada por IA en dispositivo físico."""
 
-    MODELOS_PRIORITARIOS = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.8-flash"]
+    MODELOS_PRIORITARIOS = ["gemini-3.8-flash", "gemini-3.6-flash"]
 
     # MODO AHORRO: Groq maneja TODO lo que no requiera visión de video.
     # Gemini se usa EXCLUSIVAMENTE para analizar el video (.mp4).
